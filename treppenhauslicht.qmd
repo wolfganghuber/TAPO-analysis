@@ -29,7 +29,8 @@ stopifnot(!any(is.na(videos$starttime)))
 videos
 ```
 
-Each movies is about 4h long, i.e. 240 min. Extract a reduced size (1/8 in each dimension) image every 60 sec.
+Extract a reduced size (1/8 in each dimension) image every 60 sec.
+Each movie is about 4h long, i.e., 240 min, so the following produces about 240 stills per movie, in the directory `stills`. 
 
 ```{r}
 #| label: ffmpeg
