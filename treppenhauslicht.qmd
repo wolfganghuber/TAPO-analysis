@@ -1,0 +1,60 @@
+---
+title: "Treppenhauslicht"
+author: "Wolfgang Huber"
+format: 
+  html:
+    page-layout: full
+    embed-resources: true
+---
+
+```{r}
+#| label: initialize
+#| echo: false
+knitr::opts_chunk$set(cache = TRUE, autodep = TRUE)
+```
+
+```{r}
+#| label: load
+#| message: false
+library("dplyr")
+library("ggplot2")
+
+videodir = "videos"
+videos = tibble(
+  filename = dir(videodir, pattern = "mp4$"),
+  starttime = as.POSIXct(filename, format = "%Y%m%d_%H%M%S"),
+  idx = seq(along = filename)
+)
+stopifnot(!any(is.na(videos$starttime)))
+videos
+```
+
+Each movies is about 4h long, i.e. 240 min. Extract a reduced size (1/8 in each dimension) image every 60 sec.
+
+```{r}
+#| label: ffmpeg
+#| eval: !expr (length(dir("stills", pattern="jpg$")) == 0)
+for (i in seq_len(nrow(videos))) {
+  args = paste0("-i videos/", videos$filename[i], 
+               " -vf \"fps=1/60,scale='iw/8:ih/8'\" stills/", videos$idx[i], "-%04d.jpg")
+  system2("/opt/homebrew/bin/ffmpeg", args)
+}
+```
+
+Read, compute average intensity, and assemble into dataframe `df` with the times.
+
+```{R}
+#| label: readframes
+library("EBImage")
+df = lapply(seq_len(nrow(videos)), function(i) {
+  jpgs = dir("stills", full.names = TRUE, pattern = sprintf("^%d-.*jpg$", videos$idx[i]))
+  frs = readImage(jpgs)
+  tibble(time = videos$starttime[i] + 60 * (seq(along = jpgs) - 1),
+         avgint = apply(frs, 4, mean))
+}) |> bind_rows()
+```
+
+```{R}
+#| label: plot
+ggplot(df, aes(x = time, y = avgint)) + geom_point(size=0.2)
+```
