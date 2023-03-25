@@ -29,12 +29,15 @@ videos
 ```
 
 Extract a reduced size (1/8 in each dimension) image every 60 sec.
-Each movie is about 4h long, i.e., 240 min, so the following produces about 240 stills per movie, in the directory `stills`. 
+Each movie is about 4h long, i.e., 240 min, so the following produces about 240 stills per movie, in the directory `stills`.
 
+```{r}
+#| label: rootname
+rootname = function(x) sub(".mp4$", "", x)
+```
 ```{r}
 #| label: ffmpeg
 #| eval: !expr (length(dir("stills", pattern="jpg$")) == 0)
-rootname = function(x) sub(".mp4$", "", x)
 for (i in seq_len(nrow(videos))) {
   args = paste0("-i videos/", videos$filename[i], 
                " -vf \"fps=1/60,scale='iw/8:ih/8'\" stills/", rootname(videos$filename[i]), "-%04d.jpg")
@@ -46,6 +49,7 @@ Read, compute average intensity, and assemble into dataframe `df` with the times
 
 ```{R}
 #| label: readframes
+#| message: false 
 library("EBImage")
 library("data.table")
 df = lapply(seq_len(nrow(videos)), function(i) {
@@ -57,11 +61,23 @@ df = lapply(seq_len(nrow(videos)), function(i) {
 df = mutate(df, timeofday = as.ITime(time))
 ```
 
+## All data
+
+```{R}
+#| label: all
+ggplot(df, aes(x = time, y = avgint)) + geom_point(size = 0.2) 
+```
+
+## Daytime
+
 ```{R}
 #| label: plot1
 filter(df, (timeofday < as.ITime("06:30:00")) | (timeofday > as.ITime("19:00:00"))) |> 
   ggplot(aes(x = time, y = avgint)) + geom_point(size=0.2) + ylim(c(0.4,0.45))
 ```
+
+## Last day
+
 ```{R}
 #| label: plot2
 filter(df, (time > as.POSIXct("2023-03-24 19:00:00 CET"))) |> 
