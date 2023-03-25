@@ -22,8 +22,7 @@ library("ggplot2")
 videodir = "videos"
 videos = tibble(
   filename = dir(videodir, pattern = "mp4$"),
-  starttime = as.POSIXct(filename, format = "%Y%m%d_%H%M%S"),
-  idx = seq(along = filename)
+  starttime = as.POSIXct(filename, format = "%Y%m%d_%H%M%S")
 )
 stopifnot(!any(is.na(videos$starttime)))
 videos
@@ -35,9 +34,10 @@ Each movie is about 4h long, i.e., 240 min, so the following produces about 240 
 ```{r}
 #| label: ffmpeg
 #| eval: !expr (length(dir("stills", pattern="jpg$")) == 0)
+rootname = function(x) sub(".mp4$", "", x)
 for (i in seq_len(nrow(videos))) {
   args = paste0("-i videos/", videos$filename[i], 
-               " -vf \"fps=1/60,scale='iw/8:ih/8'\" stills/", videos$idx[i], "-%04d.jpg")
+               " -vf \"fps=1/60,scale='iw/8:ih/8'\" stills/", rootname(videos$filename[i]), "-%04d.jpg")
   system2("/opt/homebrew/bin/ffmpeg", args)
 }
 ```
@@ -47,15 +47,23 @@ Read, compute average intensity, and assemble into dataframe `df` with the times
 ```{R}
 #| label: readframes
 library("EBImage")
+library("data.table")
 df = lapply(seq_len(nrow(videos)), function(i) {
-  jpgs = dir("stills", full.names = TRUE, pattern = sprintf("^%d-.*jpg$", videos$idx[i]))
+  jpgs = dir("stills", full.names = TRUE, pattern = rootname(videos$filename[i]))
   frs = readImage(jpgs)
   tibble(time = videos$starttime[i] + 60 * (seq(along = jpgs) - 1),
          avgint = apply(frs, 4, mean))
 }) |> bind_rows()
+df = mutate(df, timeofday = as.ITime(time))
 ```
 
 ```{R}
-#| label: plot
-ggplot(df, aes(x = time, y = avgint)) + geom_point(size=0.2)
+#| label: plot1
+filter(df, (timeofday < as.ITime("06:30:00")) | (timeofday > as.ITime("19:00:00"))) |> 
+  ggplot(aes(x = time, y = avgint)) + geom_point(size=0.2) + ylim(c(0.4,0.45))
+```
+```{R}
+#| label: plot2
+filter(df, (time > as.POSIXct("2023-03-24 19:00:00 CET"))) |> 
+  ggplot(aes(x = time, y = avgint)) + geom_point(size=0.2) + ylim(c(0.4,0.45))
 ```
