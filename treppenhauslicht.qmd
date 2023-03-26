@@ -34,14 +34,19 @@ Each movie is about 4h long, i.e., 240 min, so the following produces about 240 
 ```{r}
 #| label: rootname
 rootname = function(x) sub(".mp4$", "", x)
+stillsdir = "stills"
 ```
 ```{r}
 #| label: ffmpeg
-#| eval: !expr (length(dir("stills", pattern="jpg$")) == 0)
 for (i in seq_len(nrow(videos))) {
-  args = paste0("-i videos/", videos$filename[i], 
-               " -vf \"fps=1/60,scale='iw/8:ih/8'\" stills/", rootname(videos$filename[i]), "-%04d.jpg")
-  system2("/opt/homebrew/bin/ffmpeg", args)
+  rn = rootname(videos$filename[i]) 
+  if (file.exists(file.path(stillsdir, paste0(rn, "-0001.jpg")))) {
+    cat("Skipping ", rn, "\n")
+  } else {
+    args = paste0("-i videos/", videos$filename[i], 
+                  " -vf \"fps=1/60,scale='iw/8:ih/8'\" ", stillsdir, "/", rn, "-%04d.jpg")
+    system2("/opt/homebrew/bin/ffmpeg", args)
+  }
 }
 ```
 
@@ -53,7 +58,7 @@ Read, compute average intensity, and assemble into dataframe `df` with the times
 library("EBImage")
 library("data.table")
 df = lapply(seq_len(nrow(videos)), function(i) {
-  jpgs = dir("stills", full.names = TRUE, pattern = rootname(videos$filename[i]))
+  jpgs = dir(stillsdir, full.names = TRUE, pattern = rootname(videos$filename[i]))
   frs = readImage(jpgs)
   tibble(time = videos$starttime[i] + 60 * (seq(along = jpgs) - 1),
          avgint = apply(frs, 4, mean))
