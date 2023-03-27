@@ -61,7 +61,7 @@ df = lapply(seq_len(nrow(videos)), function(i) {
   jpgs = dir(stillsdir, full.names = TRUE, pattern = rootname(videos$filename[i]))
   frs = readImage(jpgs)
   tibble(time = videos$starttime[i] + 60 * (seq(along = jpgs) - 1),
-         avgint = apply(frs, 4, mean))
+         avgint = apply(frs, 4, median))
 }) |> bind_rows()
 df = mutate(df, timeofday = as.ITime(time))
 ```
@@ -78,7 +78,7 @@ ggplot(df, aes(x = time, y = avgint)) + geom_point(size = 0.2)
 ```{R}
 #| label: plot1
 filter(df, (timeofday < as.ITime("06:30:00")) | (timeofday > as.ITime("19:00:00"))) |> 
-  ggplot(aes(x = time, y = avgint)) + geom_point(size=0.2) + ylim(c(0.4,0.45))
+  ggplot(aes(x = time, y = avgint)) + geom_point(size=0.2) #+ ylim(c(0.4,0.45))
 ```
 
 ## Last day
@@ -86,5 +86,5 @@ filter(df, (timeofday < as.ITime("06:30:00")) | (timeofday > as.ITime("19:00:00"
 ```{R}
 #| label: plot2
 filter(df, (time > as.POSIXct("2023-03-24 19:00:00 CET"))) |> 
-  ggplot(aes(x = time, y = avgint)) + geom_point(size=0.2) + ylim(c(0.4,0.45))
+  ggplot(aes(x = time, y = avgint)) + geom_point(size=0.2) #+ ylim(c(0.4,0.45))
 ```

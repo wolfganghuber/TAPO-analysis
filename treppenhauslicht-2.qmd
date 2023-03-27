@@ -1,0 +1,62 @@
+---
+title: "Treppenhauslicht"
+author: "Wolfgang Huber"
+format: 
+  html:
+    page-layout: full
+    embed-resources: true
+---
+
+```{r}
+#| label: initialize
+#| echo: false
+knitr::opts_chunk$set(cache = TRUE, autodep = TRUE)
+```
+
+```{r}
+#| label: load
+#| message: false
+library("dplyr")
+
+videodir = "videos"
+fastmoviesdir = "fastmovies"
+
+videos = tibble(
+  filename = dir(videodir, pattern = "mp4$"),
+  starttime = as.POSIXct(filename, format = "%Y%m%d_%H%M%S")
+)
+stopifnot(!any(is.na(videos$starttime)))
+videos = dplyr::filter(videos, starttime >= as.POSIXct("2023-03-26 11::53"))
+videos
+```
+
+`20230326_104459_tp00021.mp4` is only 2min long, somehow damaged.
+
+The "not(mod(n,100))" filter selects every 100th frame, and the "setpts" filter adjusts the timestamps of the frames to keep them in order.
+
+```{r}
+#| label: ffmpeg
+for (i in seq_len(nrow(videos))) {
+  out = sub(".mp4$", "-fast.mp4", videos$filename[i]) 
+  if (file.exists(file.path(fastmoviesdir,out))) {
+    cat("Skipping ", out, "\n")
+  } else {
+    args = paste0("-i videos/", videos$filename[i], 
+                  " -vf \"select=not(mod(n\\,100)),setpts=N/FRAME_RATE/TB\" -an ", file.path(fastmoviesdir,out))
+    print(args)
+    system2("/opt/homebrew/bin/ffmpeg", args)
+  }
+}
+```
+
+
+
+
+
+
+
+ffmpeg -i 20230326_115342_tp00022.mp4 -vf "select=not(mod(n\,100)),setpts=N/FRAME_RATE/TB" -an output.mp4
+
+
+
+Concatenate: https://trac.ffmpeg.org/wiki/Concatenate
