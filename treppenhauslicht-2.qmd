@@ -26,37 +26,39 @@ videos = tibble(
   starttime = as.POSIXct(filename, format = "%Y%m%d_%H%M%S")
 )
 stopifnot(!any(is.na(videos$starttime)))
-videos = dplyr::filter(videos, starttime >= as.POSIXct("2023-03-26 11::53"))
+videos = dplyr::filter(videos, starttime >= as.POSIXct("2023-03-26 11:53"))
 videos
 ```
 
 `20230326_104459_tp00021.mp4` is only 2min long, somehow damaged.
 
-The "not(mod(n,100))" filter selects every 100th frame, and the "setpts" filter adjusts the timestamps of the frames to keep them in order.
+The "not(mod(n,360))" filter selects every 360th frame, and the "setpts" filter adjusts the timestamps of the frames to keep them in order.
 
 ```{r}
 #| label: ffmpeg
+videos = mutate(videos, fast = file.path(fastmoviesdir, sub(".mp4$", "-fast.mp4", filename))) 
 for (i in seq_len(nrow(videos))) {
-  out = sub(".mp4$", "-fast.mp4", videos$filename[i]) 
-  if (file.exists(file.path(fastmoviesdir,out))) {
-    cat("Skipping ", out, "\n")
+  if (file.exists(videos$fast[i])) {
+    cat("Skipping ", videos$fast[i], "\n")
   } else {
     args = paste0("-i videos/", videos$filename[i], 
-                  " -vf \"select=not(mod(n\\,100)),setpts=N/FRAME_RATE/TB\" -an ", file.path(fastmoviesdir,out))
-    print(args)
+                  " -vf \"select=not(mod(n\\,360)),setpts=N/FRAME_RATE/TB\" -an ", videos$fast[i])
     system2("/opt/homebrew/bin/ffmpeg", args)
   }
 }
 ```
 
+Concatenate
 
+From Chatgpt: Create a text file that lists the file names of the MP4 files in the order that you want them to be concatenated. For example, if you have three files named "file1.mp4", "file2.mp4", and "file3.mp4", you can create a text file named "list.txt" with the following contents:
 
+```{r}
+writeLines(sprintf("file '%s'", videos$fast), con = "concat.txt")
+```
 
+The "-c copy" option tells ffmpeg to copy the video and audio streams from the input files without re-encoding, which will preserve the original quality and avoid loss of data.
 
+```{r}
+system2("/opt/homebrew/bin/ffmpeg", args = paste("-f concat -i concat.txt -c copy", file.path(fastmoviesdir, "concat.mp4")))
+```
 
-
-ffmpeg -i 20230326_115342_tp00022.mp4 -vf "select=not(mod(n\,100)),setpts=N/FRAME_RATE/TB" -an output.mp4
-
-
-
-Concatenate: https://trac.ffmpeg.org/wiki/Concatenate
