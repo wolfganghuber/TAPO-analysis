@@ -53,12 +53,14 @@ Concatenate
 From Chatgpt: Create a text file that lists the file names of the MP4 files in the order that you want them to be concatenated. For example, if you have three files named "file1.mp4", "file2.mp4", and "file3.mp4", you can create a text file named "list.txt" with the following contents:
 
 ```{r}
-writeLines(sprintf("file '%s'", videos$fast), con = "concat.txt")
+writeLines(sprintf("file '%s'", dplyr::filter(videos, starttime >= as.POSIXct("2023-03-27 18:00"))$fast), 
+           con = "concat.txt")
 ```
 
 The "-c copy" option tells ffmpeg to copy the video and audio streams from the input files without re-encoding, which will preserve the original quality and avoid loss of data.
 
 ```{r}
-system2("/opt/homebrew/bin/ffmpeg", args = paste("-f concat -i concat.txt -c copy", file.path(fastmoviesdir, "concat.mp4")))
+system2("/opt/homebrew/bin/ffmpeg", 
+  args = paste("-f concat -i concat.txt -c copy", file.path(fastmoviesdir, "concat-2.mp4")))
 ```
 
