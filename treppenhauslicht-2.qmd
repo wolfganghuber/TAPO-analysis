@@ -26,11 +26,9 @@ videos = tibble(
   starttime = as.POSIXct(filename, format = "%Y%m%d_%H%M%S")
 )
 stopifnot(!any(is.na(videos$starttime)))
-videos = dplyr::filter(videos, starttime >= as.POSIXct("2023-03-26 11:53"))
+videos = dplyr::filter(videos, starttime >= as.POSIXct("2023-04-06 00:00"))
 videos
 ```
-
-`20230326_104459_tp00021.mp4` is only 2min long, somehow damaged.
 
 The "not(mod(n,360))" filter selects every 360th frame, and the "setpts" filter adjusts the timestamps of the frames to keep them in order.
 
