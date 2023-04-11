@@ -30,28 +30,30 @@ videos = dplyr::filter(videos, starttime >= as.POSIXct("2023-04-06 00:00"))
 videos
 ```
 
-The "not(mod(n,360))" filter selects every 360th frame, and the "setpts" filter adjusts the timestamps of the frames to keep them in order.
+The "not(mod(n,360))" filter selects every 360th frame---below we use the factor `speedup`.
+The "setpts" filter adjusts the timestamps of the frames to keep them in order.
 
 ```{r}
 #| label: ffmpeg
 videos = mutate(videos, fast = file.path(fastmoviesdir, sub(".mp4$", "-fast.mp4", filename))) 
+speedup = 720
 for (i in seq_len(nrow(videos))) {
   if (file.exists(videos$fast[i])) {
     cat("Skipping ", videos$fast[i], "\n")
   } else {
     args = paste0("-i videos/", videos$filename[i], 
-                  " -vf \"select=not(mod(n\\,360)),setpts=N/FRAME_RATE/TB\" -an ", videos$fast[i])
+                  " -vf \"select=not(mod(n\\,", speedup, ")),setpts=N/FRAME_RATE/TB\" -an ", videos$fast[i])
     system2("/opt/homebrew/bin/ffmpeg", args)
   }
 }
 ```
 
-Concatenate
+## Concatenate
 
 From Chatgpt: Create a text file that lists the file names of the MP4 files in the order that you want them to be concatenated. For example, if you have three files named "file1.mp4", "file2.mp4", and "file3.mp4", you can create a text file named "list.txt" with the following contents:
 
 ```{r}
-writeLines(sprintf("file '%s'", dplyr::filter(videos, starttime >= as.POSIXct("2023-03-27 18:00"))$fast), 
+writeLines(sprintf("file '%s'", dplyr::filter(videos, starttime >= as.POSIXct("2023-04-07 08:00"))$fast), 
            con = "concat.txt")
 ```
 
@@ -59,6 +61,6 @@ The "-c copy" option tells ffmpeg to copy the video and audio streams from the i
 
 ```{r}
 system2("/opt/homebrew/bin/ffmpeg", 
-  args = paste("-f concat -i concat.txt -c copy", file.path(fastmoviesdir, "concat-2.mp4")))
+  args = paste("-f concat -i concat.txt -c copy", file.path(fastmoviesdir, "concat-230407--0410.mp4")))
 ```
 
